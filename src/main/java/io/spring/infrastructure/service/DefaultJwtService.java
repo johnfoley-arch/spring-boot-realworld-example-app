@@ -16,6 +16,9 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class DefaultJwtService implements JwtService {
+  private static final org.slf4j.Logger logger =
+      org.slf4j.LoggerFactory.getLogger(DefaultJwtService.class);
+
   private final SecretKey signingKey;
   private final SignatureAlgorithm signatureAlgorithm;
   private int sessionTime;
@@ -43,7 +46,14 @@ public class DefaultJwtService implements JwtService {
       Jws<Claims> claimsJws =
           Jwts.parserBuilder().setSigningKey(signingKey).build().parseClaimsJws(token);
       return Optional.ofNullable(claimsJws.getBody().getSubject());
+    } catch (io.jsonwebtoken.ExpiredJwtException e) {
+      logger.warn("JWT token expired: {}", e.getMessage());
+      return Optional.empty();
+    } catch (io.jsonwebtoken.SignatureException e) {
+      logger.warn("JWT signature mismatch: {}", e.getMessage());
+      return Optional.empty();
     } catch (Exception e) {
+      logger.warn("JWT token parsing failed: {}", e.getMessage());
       return Optional.empty();
     }
   }
